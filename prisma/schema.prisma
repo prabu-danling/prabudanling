@@ -1,0 +1,355 @@
+// Prisma Schema for Santri Angon / Prabu Danling
+// Portal Kesadaran - Writer's Website
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./../db/custom.db"
+}
+
+// ====================
+// MEMBER / USER SYSTEM
+// ====================
+model Member {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  username      String?   @unique
+  avatar        String?
+  bio           String?
+  password      String    // Hashed password
+  
+  // Subscription
+  tier          MemberTier @default(free)
+  subscriptionStart DateTime?
+  subscriptionEnd   DateTime?
+  
+  // Profile
+  location      String?
+  website       String?
+  socialTwitter String?
+  socialInstagram String?
+  
+  // Stats
+  worksRead     Int       @default(0)
+  wordsWritten  Int       @default(0)
+  streak        Int       @default(0)
+  lastActive    DateTime  @default(now())
+  
+  // Settings
+  preferredTheme String  @default("dark")
+  fontSize      String    @default("medium")
+  emailNotifications Boolean @default(true)
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  bookmarks     Bookmark[]
+  readingProgress ReadingProgress[]
+  challenges    ChallengeParticipant[]
+  achievements  AchievementEarned[]
+  activities    ActivityLog[]
+  
+  @@index([email])
+  @@index([tier])
+}
+
+enum MemberTier {
+  free
+  supporter
+  patron
+  legend
+}
+
+// ====================
+// BOOKMARKS (Per Member)
+// ====================
+model Bookmark {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  workId    String?
+  work      Work?    @relation(fields: [workId], references: [id], onDelete: Cascade)
+  dreamId   String?
+  dream     DreamLog? @relation(fields: [dreamId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  
+  @@unique([memberId, workId])
+  @@unique([memberId, dreamId])
+}
+
+// ====================
+// READING PROGRESS
+// ====================
+model ReadingProgress {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  workId    String
+  work      Work     @relation(fields: [workId], references: [id], onDelete: Cascade)
+  progress  Int      @default(0) // 0-100
+  lastRead  DateTime @default(now())
+  
+  @@unique([memberId, workId])
+}
+
+// ====================
+// KARYA (Works)
+// ====================
+model Work {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  type        WorkType
+  excerpt     String
+  content     String
+  theme       String   // kesadaran, nafsu, mimpi, ruhani, eling
+  tags        String?  // JSON array of tags
+  coverImage  String?
+  readingTime Int      @default(0) // in minutes
+  isPublished Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  viewCount   Int      @default(0)
+  likeCount   Int      @default(0)
+  
+  // AI Enhancement
+  aiSummary   String?  // AI-generated summary
+  sentiment   String?  // AI-detected sentiment
+  keywords    String?  // AI-extracted keywords
+  
+  // NFT Certificate
+  nftTokenId  String?
+  nftMintedAt DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  publishedAt DateTime?
+
+  // Relations
+  quotes        Quote[]
+  bookmarks     Bookmark[]
+  readingProgress ReadingProgress[]
+
+  @@index([type])
+  @@index([theme])
+  @@index([isPublished])
+  @@index([isFeatured])
+}
+
+enum WorkType {
+  puisi
+  esai
+  cerpen
+  artikel
+}
+
+// ====================
+// DREAM LOG
+// ====================
+model DreamLog {
+  id          String      @id @default(cuid())
+  title       String
+  slug        String      @unique
+  content     String
+  symbols     String?     // JSON array of dream symbols
+  lucidity    LucidityLevel
+  mood        String?     // melancholic, contemplative, peaceful, curious, serene, profound
+  dreamDate   DateTime    // Date when the dream occurred
+  isRecurring Boolean     @default(false)
+  isLucid     Boolean     @default(false)
+  notes       String?     // Additional interpretation notes
+  
+  // AI Interpretation
+  aiInterpretation String? // AI-generated dream interpretation
+  archetype   String?     // Jungian archetype detected
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  bookmarks   Bookmark[]
+
+  @@index([lucidity])
+  @@index([mood])
+  @@index([dreamDate])
+}
+
+enum LucidityLevel {
+  low
+  medium
+  high
+}
+
+// ====================
+// QUOTES
+// ====================
+model Quote {
+  id          String   @id @default(cuid())
+  text        String
+  source      String?  // Book, article, or context where quote appeared
+  author      String?  @default("Santri Angon")
+  workId      String?
+  work        Work?    @relation(fields: [workId], references: [id], onDelete: Cascade)
+  isFeatured  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([isFeatured])
+}
+
+// ====================
+// CONTACT MESSAGES
+// ====================
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  isRead    Boolean  @default(false)
+  isReplied Boolean  @default(false)
+  repliedAt DateTime?
+  replyNote String?
+  createdAt DateTime @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ====================
+// WRITING CHALLENGES
+// ====================
+model Challenge {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  type        ChallengeType
+  target      Int      // e.g., 500 words, 7 days
+  reward      String?  // Badge, feature, etc.
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  
+  participants ChallengeParticipant[]
+  
+  @@index([isActive])
+}
+
+enum ChallengeType {
+  word_count
+  streak
+  theme
+  collaboration
+}
+
+model ChallengeParticipant {
+  id          String    @id @default(cuid())
+  memberId    String
+  member      Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  progress    Int       @default(0)
+  completed   Boolean   @default(false)
+  joinedAt    DateTime  @default(now())
+  completedAt DateTime?
+  
+  @@unique([memberId, challengeId])
+}
+
+// ====================
+// ACHIEVEMENTS
+// ====================
+model Achievement {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  icon        String   // Emoji or icon name
+  requirement String   // JSON requirements
+  rarity      Rarity
+  createdAt   DateTime @default(now())
+  
+  earned      AchievementEarned[]
+}
+
+enum Rarity {
+  common
+  uncommon
+  rare
+  epic
+  legendary
+}
+
+model AchievementEarned {
+  id            String      @id @default(cuid())
+  memberId      String
+  member        Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  earnedAt      DateTime    @default(now())
+  
+  @@unique([memberId, achievementId])
+}
+
+// ====================
+// ACTIVITY LOG
+// ====================
+model ActivityLog {
+  id          String     @id @default(cuid())
+  memberId    String
+  member      Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  action      String     // read, write, bookmark, etc.
+  entityType  String     // work, dream, challenge
+  entityId    String?
+  metadata    String?    // JSON additional data
+  createdAt   DateTime   @default(now())
+  
+  @@index([memberId])
+  @@index([action])
+}
+
+// ====================
+// SITE SETTINGS
+// ====================
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   @default("text") // text, json, number, boolean
+  updatedAt DateTime @updatedAt
+}
+
+// ====================
+// ANALYTICS
+// ====================
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  referrer  String?
+  country   String?
+  device    String?  // mobile, tablet, desktop
+  browser   String?
+  memberId  String?  // If logged in
+  timestamp DateTime @default(now())
+
+  @@index([path])
+  @@index([timestamp])
+}
+
+// ====================
+// QR CODES
+// ====================
+model QRCode {
+  id          String   @id @default(cuid())
+  workId      String?
+  memberId    String?
+  code        String   @unique
+  scans       Int      @default(0)
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime?
+  
+  @@index([code])
+}
