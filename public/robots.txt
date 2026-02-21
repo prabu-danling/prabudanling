@@ -1,5 +1,5 @@
 # ============================================
-# Santri Angon / Prabu Danling
+# Santri Angon / Prabu Danling / Muhammad Lutfi Azmi / Gugun Gunara
 # Portal Kesadaran - Robots Configuration
 # ============================================
 
@@ -78,10 +78,10 @@ Disallow: /asupsistem/
 Disallow: /api/
 
 # Sitemap locations for international SEO
-Sitemap: https://santriangon.com/sitemap.xml
+Sitemap: https://prabudanling.web.id/sitemap.xml
 
 # Host directive
-Host: santriangon.com
+Host: prabudanling.web.id
 
 # Crawl-delay for all
 Crawl-delay: 1
