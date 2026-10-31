@@ -4,6 +4,7 @@ import { Playfair_Display, Poppins, Nunito } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/layout/theme-provider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // ═══════════════════════════════════════════════════════════════
 // TYPOGRAPHY SYSTEM - God-Tier Font Combination
@@ -307,6 +308,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </ThemeProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
